@@ -6,6 +6,10 @@ st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centere
 
 # The Header
 st.title("☕ Tour de Coffee")
+
+# --- INSTAGRAM LINK RIGHT UNDER TITLE ---
+st.link_button("Follow the Instagram!", "https://instagram.com/alexxjirik")
+
 st.write("Welcome to the lineup! Drop your latest coffee shop finds here. Let's keep the community caffeinated. 🤙")
 
 st.divider()
