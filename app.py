@@ -18,7 +18,7 @@ st.markdown("""
     }
 
     /* 2. THE UX: Apply Montserrat to all the regular text */
-    html, body, p, div, input, textarea, button {
+    html, body, p, div, input, textarea, button, .stRadio > label {
         font-family: 'Montserrat', sans-serif !important;
     }
 
@@ -114,13 +114,40 @@ if existing_data.empty:
 else:
     df = existing_data.copy()
     df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
-    unique_shops = df["Shop"].unique()
     
-    for shop in unique_shops:
+    # --- NEW: SORTING TOGGLE ---
+    sort_method = st.radio(
+        "Sort the Lineup:", 
+        ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], 
+        horizontal=True
+    )
+    
+    # Determine the order of the shops based on what they clicked
+    if sort_method == "Highest Rated ⭐":
+        # Calculates the average score per shop and sorts from highest to lowest
+        sorted_shops = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False).index.tolist()
+    elif sort_method == "Most Reviewed 📝":
+        # Counts how many times a shop appears and sorts from most to least
+        sorted_shops = df["Shop"].value_counts().index.tolist()
+    else:
+        # Just puts them in classic A-Z order
+        sorted_shops = sorted(df["Shop"].unique())
+    
+    st.write("") # Tiny bit of blank space for a clean UI
+    
+    # Loop through the precisely sorted list
+    for shop in sorted_shops:
         shop_reviews = df[df["Shop"] == shop]
+        
+        # Figure out the math behind the scenes for the sub-headers
+        avg_stars = shop_reviews["Stars"].mean()
+        review_count = len(shop_reviews)
+        
         with st.container(border=True):
-            st.markdown(f"### 📍 {shop}")
-            with st.expander(f"📖 View Reviews ({len(shop_reviews)})"):
+            # Display shop name with a tiny summary of its stats next to it
+            st.markdown(f"### 📍 {shop} `({avg_stars:.1f}⭐ | {review_count} reviews)`")
+            
+            with st.expander(f"📖 Read the Reviews"):
                 for _, row in shop_reviews.iloc[::-1].iterrows():
                     individual_stars = "⭐" * int(row['Stars'])
                     st.markdown(f"**Score given:** {individual_stars}")
@@ -133,8 +160,6 @@ with st.sidebar:
     st.write("Found a new gem in MPLS? Log it below.")
     
     shop_name = st.text_input("Where are we drinking coffee?", placeholder="e.g., Spyhouse Coffee").strip().title()
-    
-    # NEW: Optional Address Field
     shop_address = st.text_input("Street Address (Optional)", placeholder="e.g., 945 Broadway St NE", help="Leave blank! Only needed if the map misses the shop by name.").strip()
     
     st.write("Overall Vibe & Taste")
@@ -152,7 +177,6 @@ with st.sidebar:
             
             geolocator = Nominatim(user_agent="tour_de_coffee_mpls")
             
-            # Use the address if they provided one, otherwise guess by name
             if shop_address:
                 search_query = f"{shop_address}, Minneapolis, Minnesota"
             else:
@@ -163,7 +187,6 @@ with st.sidebar:
             except:
                 location = None
                 
-            # THE MAGIC BRAKE: If it fails and they didn't give an address, stop everything!
             if not location and not shop_address:
                 st.warning("📍 The map couldn't find this shop by name! Please add the Street Address in the box above and hit Post again.")
                 st.stop()
