@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from geopy.geocoders import Nominatim
+import folium
+from streamlit_folium import st_folium
 
 # Sets up the browser tab
 st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centered")
 
-# Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX (Laptop Hack Included)
+# Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Montserrat:wght@400;600&display=swap');
@@ -76,29 +78,68 @@ if "Longitude" not in existing_data.columns:
 if not existing_data.empty:
     existing_data["Shop"] = existing_data["Shop"].astype(str).str.strip().str.title()
 
+# Master DataFrame for math and map tracking
+df = existing_data.copy()
+if not df.empty:
+    df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
+
 # --- APP METRICS ---
-unique_shops_count = existing_data["Shop"].nunique() if not existing_data.empty else 0
+unique_shops_count = df["Shop"].nunique() if not df.empty else 0
 col1, col2 = st.columns(2)
 with col1:
     st.metric(label="Unique Cafés Found", value=unique_shops_count)
 with col2:
-    st.metric(label="Total Reviews Logged", value=len(existing_data))
+    st.metric(label="Total Reviews Logged", value=len(df))
 
 st.divider()
 
-# --- THE MAP (The Local Radar) ---
+# --- THE MAP (The Interactive Radar) ---
 st.subheader("🗺️ The Local Radar")
 
-if not existing_data.empty:
-    map_data = existing_data.dropna(subset=["Latitude", "Longitude"]).copy()
-    
+if not df.empty:
+    map_data = df.dropna(subset=["Latitude", "Longitude"]).copy()
     map_data["Latitude"] = pd.to_numeric(map_data["Latitude"], errors="coerce")
     map_data["Longitude"] = pd.to_numeric(map_data["Longitude"], errors="coerce")
     map_data = map_data.dropna(subset=["Latitude", "Longitude"]) 
     
     if not map_data.empty:
-        map_data = map_data.rename(columns={"Latitude": "lat", "Longitude": "lon"})
-        st.map(map_data, color="#D27D2D", size=200) 
+        # Find the center of all your mapped shops so the camera defaults there perfectly
+        center_lat = map_data["Latitude"].mean()
+        center_lon = map_data["Longitude"].mean()
+        
+        # Build the base map with a clean, high-end light theme
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=12, tiles="CartoDB positron")
+        
+        unique_mapped_shops = map_data["Shop"].unique()
+        
+        for shop in unique_mapped_shops:
+            # Gather the math for the pop-up card
+            shop_reviews = df[df["Shop"] == shop]
+            avg_stars = shop_reviews["Stars"].mean()
+            review_count = len(shop_reviews)
+            
+            # Get the exact GPS coordinates for this specific shop
+            shop_lat = map_data[map_data["Shop"] == shop]["Latitude"].iloc[0]
+            shop_lon = map_data[map_data["Shop"] == shop]["Longitude"].iloc[0]
+            
+            # The custom HTML mini-card that appears when you click a pin
+            popup_html = f"""
+            <div style="font-family: 'Montserrat', sans-serif; min-width: 150px;">
+                <h4 style="margin-bottom: 5px; color: #006884; font-weight: bold;">{shop}</h4>
+                <p style="margin: 0; font-size: 14px; font-weight: 600;">{avg_stars:.1f} ⭐ ({review_count} reviews)</p>
+            </div>
+            """
+            
+            # Drop the custom pin onto the map
+            folium.Marker(
+                location=[shop_lat, shop_lon],
+                tooltip=f"<b>{shop}</b>", # The hover text
+                popup=folium.Popup(popup_html, max_width=300), # The clickable card
+                icon=folium.Icon(color="orange", icon="coffee", prefix="fa") # The custom coffee cup icon!
+            ).add_to(m)
+            
+        # Render the map onto the Streamlit page
+        st_folium(m, width=700, height=400, returned_objects=[])
     else:
         st.info("No mapped locations yet! Add a shop to drop the first pin.")
 else:
@@ -109,42 +150,31 @@ st.divider()
 # --- THE FEED (The Local Lineup) ---
 st.subheader("✨ The Local Lineup")
 
-if existing_data.empty:
+if df.empty:
     st.info("No reviews in the database yet. Be the first to drop one!")
 else:
-    df = existing_data.copy()
-    df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
-    
-    # --- NEW: SORTING TOGGLE ---
+    # --- SORTING TOGGLE ---
     sort_method = st.radio(
         "Sort the Lineup:", 
         ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], 
         horizontal=True
     )
     
-    # Determine the order of the shops based on what they clicked
     if sort_method == "Highest Rated ⭐":
-        # Calculates the average score per shop and sorts from highest to lowest
         sorted_shops = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False).index.tolist()
     elif sort_method == "Most Reviewed 📝":
-        # Counts how many times a shop appears and sorts from most to least
         sorted_shops = df["Shop"].value_counts().index.tolist()
     else:
-        # Just puts them in classic A-Z order
         sorted_shops = sorted(df["Shop"].unique())
     
-    st.write("") # Tiny bit of blank space for a clean UI
+    st.write("") 
     
-    # Loop through the precisely sorted list
     for shop in sorted_shops:
         shop_reviews = df[df["Shop"] == shop]
-        
-        # Figure out the math behind the scenes for the sub-headers
         avg_stars = shop_reviews["Stars"].mean()
         review_count = len(shop_reviews)
         
         with st.container(border=True):
-            # Display shop name with a tiny summary of its stats next to it
             st.markdown(f"### 📍 {shop} `({avg_stars:.1f}⭐ | {review_count} reviews)`")
             
             with st.expander(f"📖 Read the Reviews"):
