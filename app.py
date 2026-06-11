@@ -80,25 +80,18 @@ else:
     # Crucial: convert Stars column to numeric just in case data types get mismatched
     df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
     
-    # Group by shop name, get the average rating, and sort so the highest rated spots appear first!
-    avg_ratings = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False)
+    # Get a list of all the unique coffee shops in the database
+    unique_shops = df["Shop"].unique()
     
     # Loop through each unique shop
-    for shop, avg_score in avg_ratings.items():
+    for shop in unique_shops:
         # Filter down all the individual reviews just for this specific shop
         shop_reviews = df[df["Shop"] == shop]
         
-        # Format the mathematical average back into a friendly visual star string
-        star_emojis = "⭐" * int(round(avg_score))
-        
         # Render a structured visual card container for the cafe
         with st.container(border=True):
-            shop_col, star_col = st.columns([3, 1.5])
-            with shop_col:
-                st.markdown(f"### 📍 {shop}")
-            with star_col:
-                # Displays the visual stars along with the exact numeric average (e.g., 4.3)
-                st.markdown(f"### {star_emojis} `({avg_score:.1f})`")
+            # Just display the shop name clean and simple
+            st.markdown(f"### 📍 {shop}")
             
             # The "Folder" mechanic: st.expander bundles all user comments inside a neat drop-down
             with st.expander(f"📖 View Reviews ({len(shop_reviews)})"):
