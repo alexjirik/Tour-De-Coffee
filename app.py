@@ -13,13 +13,16 @@ st.write("Welcome to the lineup! Drop your latest coffee shop finds here. Let's 
 st.divider()
 
 # --- CONNECT TO THE DATABASE (The Espresso Machine) ---
-# This reaches out to Google Sheets using your secret keys
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Read the current reviews from the "Reviews" tab
-# ttl=0 means it always pulls the freshest data so your friends see updates instantly
-existing_data = conn.read(worksheet="Reviews", usecols=[0, 1, 2], ttl=0)
-existing_data = existing_data.dropna(how="all") # Cleans up any empty rows
+# Removed usecols so we safely read the whole structure before updating it later
+existing_data = conn.read(worksheet="Reviews", ttl=0)
+
+if existing_data is not None:
+    existing_data = existing_data.dropna(how="all")  # Cleans up any empty rows
+else:
+    existing_data = pd.DataFrame(columns=["Shop", "Stars", "Review"])
 
 # --- THE FEED (Showing Past Reviews) ---
 st.subheader("The Local Lineup")
@@ -32,7 +35,7 @@ else:
         st.write(f"### 📍 {row['Shop']}")
         st.write(f"**Rating:** {row['Stars']}")
         st.write(f"**Thoughts:** {row['Review']}")
-        st.write("---") # A subtle visual line between reviews
+        st.write("---")  # A subtle visual line between reviews
 
 # --- LOG A NEW SPOT ---
 st.subheader("Drop a New Review")
@@ -62,7 +65,6 @@ if st.button("Post Review"):
         conn.update(worksheet="Reviews", data=updated_df)
         
         st.success(f"Yeww! Added {shop_name} to the lineup! 🌊")
-        st.rerun() # Refresh the page to show the feed instantly
+        st.rerun()  # Refresh the page to show the feed instantly
     else:
-        st.error("Hold up! Make sure you fill in the shop name, a review, and click a star rating before paddling out.")
         st.error("Hold up! Make sure you fill in the shop name, a review, and click a star rating before paddling out.")
