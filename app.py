@@ -1,3 +1,10 @@
+import streamlit as st
+import pandas as pd
+from streamlit_gsheets import GSheetsConnection
+
+# Sets up the browser tab
+st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centered")
+...
 # Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX!
 st.markdown("""
     <style>
