@@ -57,6 +57,11 @@ else:
     # Ensure column headers exist even if the sheet is completely blank
     existing_data = pd.DataFrame(columns=["Shop", "Stars", "Review"])
 
+# --- THE MAGIC FIX FOR EXISTING DATA ---
+# This forces every shop name in the database to have Perfect Capitalization and removes accidental spaces
+if not existing_data.empty:
+    existing_data["Shop"] = existing_data["Shop"].astype(str).str.strip().str.title()
+
 # --- APP METRICS ---
 # Unique shops counted separately from total reviews logged
 unique_shops_count = existing_data["Shop"].nunique() if not existing_data.empty else 0
@@ -80,7 +85,7 @@ else:
     # Crucial: convert Stars column to numeric just in case data types get mismatched
     df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
     
-    # Get a list of all the unique coffee shops in the database
+    # Get a list of all the unique coffee shops in the database (now perfectly capitalized!)
     unique_shops = df["Shop"].unique()
     
     # Loop through each unique shop
@@ -107,7 +112,9 @@ st.sidebar.header("📥 Drop a New Review")
 with st.sidebar:
     st.write("Found a new gem or returning to an old favorite? Log it below.")
     
-    shop_name = st.text_input("Where are we drinking coffee?", placeholder="e.g., Sunrise Coffee Roasters").strip()
+    # --- THE MAGIC FIX FOR NEW INPUTS ---
+    # .title() automatically capitalizes the first letter of every word as they type it
+    shop_name = st.text_input("Where are we drinking coffee?", placeholder="e.g., Sunrise Coffee Roasters").strip().title()
     
     st.write("Overall Vibe & Taste")
     rating = st.feedback("stars")
