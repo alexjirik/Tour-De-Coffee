@@ -3,3 +3,5 @@ Pillow
 pandas
 st-gsheets-connection
 geopy
+folium
+streamlit-folium
