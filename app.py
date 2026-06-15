@@ -189,7 +189,7 @@ else:
                     st.write("---")
 
 # --- LOG A NEW SPOT ---
-st.sidebar.header("📥 Drop a New Review")
+st.sidebar.header("Drop a New Review!")
 with st.sidebar:
     st.write("Found a new gem in MPLS? Log it below.")
     
