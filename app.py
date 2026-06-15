@@ -11,17 +11,20 @@ st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centere
 # Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Montserrat:wght@400;600&display=swap');
+    /* Import Montserrat (800 Extra Bold/900 Black) and Open Sans (300 Light/400 Regular) */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Open+Sans:wght@300;400&display=swap');
     
-    /* 1. THE VIBE: Apply Caveat to our main headers */
+    /* 1. THE VIBE: Apply Montserrat Extra Bold to our main headers */
     h1, h2, h3 {
-        font-family: 'Caveat', cursive !important;
-        letter-spacing: 1px;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.5px; /* Tightens up the big headers just a bit for a clean modern look */
     }
 
-    /* 2. THE UX: Apply Montserrat to all the regular text */
+    /* 2. THE UX: Apply Open Sans Regular to all the body text */
     html, body, p, div, input, textarea, button, .stRadio > label {
-        font-family: 'Montserrat', sans-serif !important;
+        font-family: 'Open Sans', sans-serif !important;
+        font-weight: 400 !important;
     }
 
     /* 3. THE BUTTONS: A little extra breathing room */
@@ -31,7 +34,8 @@ st.markdown("""
         border-radius: 20px;
         border: none;
         padding: 0.6rem 2rem;
-        font-weight: 600;
+        font-family: 'Montserrat', sans-serif !important; /* Keep buttons bold and punchy */
+        font-weight: 800 !important;
         transition: all 0.3s ease; 
     }
     div.stButton > button:first-child:hover {
