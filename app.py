@@ -1,249 +1,154 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
-from geopy.geocoders import Nominatim
-import folium
-from streamlit_folium import st_folium
 
-# Sets up the browser tab
-st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centered")
+# Page Config
+st.set_page_config(page_title="Synthetic Mindset Engine", layout="wide")
 
-# Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX
+# Custom Styling to make it look less like default Streamlit
 st.markdown("""
     <style>
-    /* Import Montserrat (800 Extra Bold/900 Black) and Open Sans (300 Light/400 Regular) */
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Open+Sans:wght@300;400&display=swap');
-    
-    /* 1. THE VIBE: Apply Montserrat Extra Bold to our main headers */
-    h1, h2, h3 {
-        font-family: 'Montserrat', sans-serif !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.5px; /* Tightens up the big headers just a bit for a clean modern look */
-    }
-
-    /* 2. THE UX: Apply Open Sans Regular to all the body text */
-    html, body, p, div, input, textarea, button, .stRadio > label {
-        font-family: 'Open Sans', sans-serif !important;
-        font-weight: 400 !important;
-    }
-
-    /* 3. THE BUTTONS: A little extra breathing room */
-    div.stButton > button:first-child {
-        background-color: #D27D2D;
-        color: white;
-        border-radius: 20px;
-        border: none;
-        padding: 0.6rem 2rem;
-        font-family: 'Montserrat', sans-serif !important; /* Keep buttons bold and punchy */
-        font-weight: 800 !important;
-        transition: all 0.3s ease; 
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #A0522D;
-        color: white;
-        transform: translateY(-2px); 
-    }
-
-    /* 4. THE COLORS: Temporary Laptop Hack */
-    .stApp {
-        background-color: #F4F1EA;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #EAE5D9;
-    }
-    h1, h2, h3, p, span, label, div {
-        color: #006884 !important;
-    }
+    .big-font { font-size:20px !important; font-weight: 500; color: #4A4A4A;}
+    .metric-container { background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 5px solid #ff9f43; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- HEADER SECTION ---
-st.title("☕ Tour de Coffee: MPLS")
-st.caption("Keeping the Minneapolis community caffeinated & stoked. 🤙")
-st.link_button("📸 Follow the Instagram", "https://instagram.com/tour.decoffee")
+st.title("Growth Target & Mindset Engine 🎯")
+st.markdown("<p class='big-font'>Fusing quantitative predispositions with qualitative human truths.</p>", unsafe_allow_html=True)
 
-st.divider()
-
-# --- DATABASE CONNECTION ---
-conn = st.connection("gsheets", type=GSheetsConnection)
-existing_data = conn.read(worksheet="Reviews", ttl=0)
-
-if existing_data is not None:
-    existing_data = existing_data.dropna(how="all")
-else:
-    existing_data = pd.DataFrame(columns=["Shop", "Stars", "Review", "Latitude", "Longitude"])
-
-# --- DATA CLEANUP ---
-if "Latitude" not in existing_data.columns:
-    existing_data["Latitude"] = None
-if "Longitude" not in existing_data.columns:
-    existing_data["Longitude"] = None
-
-if not existing_data.empty:
-    existing_data["Shop"] = existing_data["Shop"].astype(str).str.strip().str.title()
-
-# Master DataFrame for math and map tracking
-df = existing_data.copy()
-if not df.empty:
-    df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
-
-# --- APP METRICS ---
-unique_shops_count = df["Shop"].nunique() if not df.empty else 0
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(label="Unique Cafés Found", value=unique_shops_count)
-with col2:
-    st.metric(label="Total Reviews Logged", value=len(df))
-
-st.divider()
-
-# --- THE MAP (The Interactive Radar) ---
-st.subheader("🗺️ The Local Radar")
-
-if not df.empty:
-    map_data = df.dropna(subset=["Latitude", "Longitude"]).copy()
-    map_data["Latitude"] = pd.to_numeric(map_data["Latitude"], errors="coerce")
-    map_data["Longitude"] = pd.to_numeric(map_data["Longitude"], errors="coerce")
-    map_data = map_data.dropna(subset=["Latitude", "Longitude"]) 
-    
-    if not map_data.empty:
-        # Find the center of all your mapped shops so the camera defaults there perfectly
-        center_lat = map_data["Latitude"].mean()
-        center_lon = map_data["Longitude"].mean()
-        
-        # Build the base map with a clean, high-end light theme
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=12, tiles="CartoDB positron")
-        
-        unique_mapped_shops = map_data["Shop"].unique()
-        
-        for shop in unique_mapped_shops:
-            # Gather the math for the pop-up card
-            shop_reviews = df[df["Shop"] == shop]
-            avg_stars = shop_reviews["Stars"].mean()
-            review_count = len(shop_reviews)
-            
-            # Get the exact GPS coordinates for this specific shop
-            shop_lat = map_data[map_data["Shop"] == shop]["Latitude"].iloc[0]
-            shop_lon = map_data[map_data["Shop"] == shop]["Longitude"].iloc[0]
-            
-            # The custom HTML mini-card that appears when you click a pin
-            popup_html = f"""
-            <div style="font-family: 'Montserrat', sans-serif; min-width: 150px;">
-                <h4 style="margin-bottom: 5px; color: #006884; font-weight: bold;">{shop}</h4>
-                <p style="margin: 0; font-size: 14px; font-weight: 600;">{avg_stars:.1f} ⭐ ({review_count} reviews)</p>
-            </div>
-            """
-            
-            # Drop the custom pin onto the map
-            folium.Marker(
-                location=[shop_lat, shop_lon],
-                tooltip=f"<b>{shop}</b>", # The hover text
-                popup=folium.Popup(popup_html, max_width=300), # The clickable card
-                icon=folium.Icon(color="orange", icon="coffee", prefix="fa") # The custom coffee cup icon!
-            ).add_to(m)
-            
-        # Render the map onto the Streamlit page
-        st_folium(m, width=700, height=400, returned_objects=[])
-    else:
-        st.info("No mapped locations yet! Add a shop to drop the first pin.")
-else:
-    st.info("No mapped locations yet! Add a shop to drop the first pin.")
-
-st.divider()
-
-# --- THE FEED (The Local Lineup) ---
-st.subheader("✨ The Local Lineup")
-
-if df.empty:
-    st.info("No reviews in the database yet. Be the first to drop one!")
-else:
-    # --- SORTING TOGGLE ---
-    sort_method = st.radio(
-        "Sort the Lineup:", 
-        ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], 
-        horizontal=True
-    )
-    
-    if sort_method == "Highest Rated ⭐":
-        sorted_shops = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False).index.tolist()
-    elif sort_method == "Most Reviewed 📝":
-        sorted_shops = df["Shop"].value_counts().index.tolist()
-    else:
-        sorted_shops = sorted(df["Shop"].unique())
-    
-    st.write("") 
-    
-    for shop in sorted_shops:
-        shop_reviews = df[df["Shop"] == shop]
-        avg_stars = shop_reviews["Stars"].mean()
-        review_count = len(shop_reviews)
-        
-        with st.container(border=True):
-            st.markdown(f"### 📍 {shop} `({avg_stars:.1f}⭐ | {review_count} reviews)`")
-            
-            with st.expander(f"📖 Read the Reviews"):
-                for _, row in shop_reviews.iloc[::-1].iterrows():
-                    individual_stars = "⭐" * int(row['Stars'])
-                    st.markdown(f"**Score given:** {individual_stars}")
-                    st.caption(f"\"{row['Review']}\"")
-                    st.write("---")
-
-# --- LOG A NEW SPOT ---
-st.sidebar.header("Drop a New Review!")
+# 1. Data Ingestion
 with st.sidebar:
-    st.write("Found a new gem in MPLS? Log it below.")
-    
-    shop_name = st.text_input("Where are we drinking coffee?", placeholder="e.g., Spyhouse Coffee").strip().title()
-    shop_address = st.text_input("Street Address (Optional)", placeholder="e.g., 945 Broadway St NE", help="Leave blank! Only needed if the map misses the shop by name.").strip()
-    
-    st.write("Overall Vibe & Taste")
-    rating = st.feedback("stars")
-    
-    review_text = st.text_area(
-        "Spill the beans...", 
-        placeholder="How was the brew? Good seating? Fast Wi-Fi?",
-        max_chars=280
-    )
-    
-    if st.button("Post Review", use_container_width=True):
-        if shop_name and review_text and rating is not None:
-            numeric_rating = rating + 1
-            
-            geolocator = Nominatim(user_agent="tour_de_coffee_mpls")
-            
-            if shop_address:
-                search_query = f"{shop_address}, Minneapolis, Minnesota"
-            else:
-                search_query = f"{shop_name}, Minneapolis, Minnesota"
-            
-            try:
-                location = geolocator.geocode(search_query, timeout=5)
-            except:
-                location = None
-                
-            if not location and not shop_address:
-                st.warning("📍 The map couldn't find this shop by name! Please add the Street Address in the box above and hit Post again.")
-                st.stop()
-                
-            shop_lat = location.latitude if location else None
-            shop_lon = location.longitude if location else None
-            
-            new_review = pd.DataFrame([{
-                "Shop": shop_name,
-                "Stars": numeric_rating,
-                "Review": review_text,
-                "Latitude": shop_lat,
-                "Longitude": shop_lon
-            }])
-            
-            updated_df = pd.concat([existing_data, new_review], ignore_index=True)
-            conn.update(worksheet="Reviews", data=updated_df)
-            
-            if shop_lat and shop_lon:
-                st.success(f"Yeww! Added {shop_name} and dropped a pin on the map! 🌊📍")
-            else:
-                st.success(f"Added {shop_name}! (Even with the address, the free map missed the pin, but the review is safely saved). 🌊")
-                
-            st.rerun()
+    st.header("1. Ingest Data")
+    st.markdown("Upload respondent-level data. Ensure your Growth Targets (Mindsets) are included as a column.")
+    uploaded_file = st.file_uploader("Upload CSV/Excel", type=['csv', 'xlsx'])
+
+if uploaded_file is not None:
+    # Load Data
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
         else:
-            st.error("Hold up! Fill out all fields before paddling out.")
+            df = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.error(f"Error loading file: {e}")
+        st.stop()
+
+    columns = df.columns.tolist()
+
+    # 2. Strategy Configuration
+    st.sidebar.header("2. Strategy Configuration")
+    
+    # Selecting the Growth Target (The Core Mindset)
+    target_var = st.sidebar.selectbox("Select Growth Target / Mindset Column", columns, index=0)
+    
+    # Selecting the behavior/demo to cross against
+    explore_var = st.sidebar.selectbox("Select Variable to Explore", columns, index=min(1, len(columns)-1))
+    
+    weight_var = st.sidebar.selectbox("Select Survey Weight (Optional)", ['None (Unweighted)'] + columns)
+
+    if st.sidebar.button("Run Analysis", type="primary"):
+        
+        # --- TAB LAYOUT ---
+        tab1, tab2 = st.tabs(["📊 The Quant Crosstab", "🧠 The Human Truth (Qual)"])
+        
+        with tab1:
+            st.subheader(f"Profiling '{target_var}' against '{explore_var}'")
+            
+            # Apply weighting
+            weight_col = weight_var if weight_var != 'None (Unweighted)' else '_Weight'
+            if weight_col == '_Weight':
+                df['_Weight'] = 1
+                
+            # Calculate Crosstab
+            crosstab = pd.crosstab(
+                df[explore_var], 
+                df[target_var], 
+                values=df[weight_col], 
+                aggfunc='sum', 
+                margins=True, 
+                margins_name='Total'
+            )
+            
+            # Calculate Metrics
+            results = {}
+            for column in crosstab.columns:
+                if column != 'Total':
+                    count = crosstab[column]
+                    vert_pct = (count / crosstab.loc['Total', column]) * 100
+                    horz_pct = (count / crosstab['Total']) * 100
+                    pop_pct = (crosstab['Total'] / crosstab.loc['Total', 'Total']) * 100
+                    index = (vert_pct / pop_pct) * 100
+                    
+                    results[column] = pd.DataFrame({
+                        'Universe Size': count.round(0),
+                        'Target Comp (%)': vert_pct.round(1),
+                        'Reach (%)': horz_pct.round(1),
+                        'Index (100=Avg)': index.round(0)
+                    })
+            
+            final_table = pd.concat(results.values(), axis=1, keys=results.keys())
+            final_table = final_table.drop('Total', errors='ignore')
+            
+            # Highlight high indices
+            def color_index(val):
+                color = 'green' if val > 115 else 'red' if val < 85 else 'black'
+                return f'color: {color}'
+            
+            # Only apply styling to Index columns
+            idx = pd.IndexSlice
+            styled_table = final_table.style.applymap(color_index, subset=idx[:, idx[:, 'Index (100=Avg)']])
+            
+            st.dataframe(styled_table, use_container_width=True, height=400)
+            
+            st.caption("*Index > 115 indicates a strong predisposition. Index < 85 indicates a barrier.*")
+
+        with tab2:
+            st.subheader("Fleshing out the Growth Target")
+            st.markdown("Based on the **Five Fundamental Truths**, here is how we contextualize this data.")
+            
+            # Placeholder for dynamic qualitative integration
+            selected_target = st.selectbox("Select a specific segment to view its human truth:", df[target_var].dropna().unique())
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                <div class='metric-container'>
+                    <h4>1. Predisposition Driver</h4>
+                    <p><i>What underlying motivation or attitude drives {selected_target}?</i></p>
+                    <p>(Qualitative input from Ethnography would populate here based on the selected segment.)</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                <div class='metric-container'>
+                    <h4>4. Master Brand Alignment</h4>
+                    <p><i>How does {selected_target} align with where the brand wants to go?</i></p>
+                    <p>(Strategic mapping data would populate here.)</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                st.markdown(f"""
+                <div class='metric-container'>
+                    <h4>5. The Human Truth</h4>
+                    <p><i>Uncovering the defining tension, barrier, or priority.</i></p>
+                    <p><b>Observation:</b> High index scores in [X behavior] suggest a desire for efficiency.</p>
+                    <p><b>Tension:</b> They want efficiency, but feel brands are sacrificing quality to achieve it.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+else:
+    # Empty State with Methodology Reminder
+    st.info("Awaiting Data Upload in the Sidebar.")
+    
+    st.divider()
+    st.markdown("### The Growth Target Methodology")
+    st.markdown("An effective Growth Target delivers on five fundamental truths:")
+    
+    cols = st.columns(5)
+    cols[0].markdown("**1. Predisposition**\nPurchase intent is fleeting, predisposition is forever.")
+    cols[1].markdown("**2. Real World**\nGrowth Targets aren't created in a vacuum.")
+    cols[2].markdown("**3. Direction**\nA Growth Target gets you where you want to go.")
+    cols[3].markdown("**4. Alignment**\nKey to where you want a brand to go.")
+    cols[4].markdown("**5. Human Truth**\nGrowth requires clarity & conviction.")
