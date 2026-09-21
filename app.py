@@ -7,11 +7,16 @@ from streamlit_folium import st_folium
 from datetime import datetime
 
 # Sets up the browser tab
-st.set_page_config(page_title="Tour de Coffee", page_icon="☕", layout="centered")
+st.set_page_config(page_title="Tour de Coffee", layout="centered")
 
-# Custom CSS Injection for Coffee & Surf Aesthetics AND Pro UX (Editorial Fonts)
+# Custom CSS Injection for an Elevated Editorial Aesthetic
 st.markdown("""
     <style>
+    /* Hide Streamlit branding for a bespoke app feel */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
     /* Import Montserrat (800 Extra Bold) and Open Sans (400 Regular) */
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Open+Sans:wght@300;400&display=swap');
     
@@ -28,7 +33,7 @@ st.markdown("""
         font-weight: 400 !important;
     }
 
-    /* 3. THE BUTTONS: A little extra breathing room */
+    /* 3. THE BUTTONS: Clean, professional spacing and interaction */
     div.stButton > button:first-child {
         background-color: #D27D2D;
         color: white;
@@ -45,7 +50,7 @@ st.markdown("""
         transform: translateY(-2px); 
     }
 
-    /* 4. THE COLORS: Temporary Laptop Hack */
+    /* 4. THE COLORS: Warm, clean palette */
     .stApp {
         background-color: #F4F1EA;
     }
@@ -56,7 +61,7 @@ st.markdown("""
         color: #006884 !important;
     }
     
-    /* 5. THE GUESTBOOK: Clean styling for community messages */
+    /* 5. THE GUESTBOOK: Minimalist styling for community messages */
     blockquote {
         border-left: 4px solid #D27D2D;
         padding-left: 1rem;
@@ -71,9 +76,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER SECTION ---
-st.title("☕ Tour de Coffee: MPLS")
-st.caption("Keeping the Minneapolis community caffeinated & stoked. 🤙")
-st.link_button("📸 Follow the Instagram", "https://instagram.com/tour.decoffee")
+st.title("TOUR DE COFFEE : MPLS")
+st.caption("A curated guide to Minneapolis coffee culture.")
+st.link_button("Follow the Instagram", "https://instagram.com/tour.decoffee")
 
 st.divider()
 
@@ -103,30 +108,30 @@ if not df.empty:
 unique_shops_count = df["Shop"].nunique() if not df.empty else 0
 col1, col2 = st.columns(2)
 with col1:
-    st.metric(label="Unique Cafés Found", value=unique_shops_count)
+    st.metric(label="Unique Cafés Logged", value=unique_shops_count)
 with col2:
-    st.metric(label="Total Reviews Logged", value=len(df))
+    st.metric(label="Total Reviews", value=len(df))
 
 st.divider()
 
 # --- LOG A NEW SPOT ---
-with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
-    st.write("Found a new gem in MPLS? Log it below.")
+with st.expander("Drop a New Review", expanded=False):
+    st.write("Discovered a new café? Log the details below.")
     
-    shop_name = st.text_input("Where are we drinking coffee?", placeholder="e.g., Spyhouse Coffee").strip().title()
-    shop_address = st.text_input("Street Address (Optional)", placeholder="e.g., 945 Broadway St NE", help="Leave blank! Only needed if the map misses the shop.").strip()
+    shop_name = st.text_input("Café Name", placeholder="e.g., Spyhouse Coffee").strip().title()
+    shop_address = st.text_input("Street Address (Optional)", placeholder="e.g., 945 Broadway St NE", help="Leave blank unless the map misses the location.").strip()
     
-    st.write("Overall Vibe & Taste")
+    st.write("Overall Experience")
     rating = st.feedback("stars")
     
     vibe_tags = st.multiselect(
-        "Vibe Check (Select all that apply)", 
-        ["💻 Good for Working", "☀️ Great Patio", "🥐 Amazing Pastries", "🚗 Drive-Thru", "🐕 Dog Friendly", "🛋️ Cozy Seating", "☕ Elite Espresso"]
+        "Atmosphere & Features (Select all that apply)", 
+        ["Good for Working", "Great Patio", "Amazing Pastries", "Drive-Thru", "Dog Friendly", "Cozy Seating", "Elite Espresso"]
     )
     
-    review_text = st.text_area("Spill the beans...", placeholder="How was the brew? Fast Wi-Fi?", max_chars=280)
+    review_text = st.text_area("Share your experience", placeholder="Notes on the espresso, atmosphere, or Wi-Fi...", max_chars=280)
     
-    if st.button("Post Review", use_container_width=True):
+    if st.button("Publish Review", use_container_width=True):
         if shop_name and review_text and rating is not None:
             numeric_rating = rating + 1
             
@@ -139,7 +144,7 @@ with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
                 location = None
                 
             if not location and not shop_address:
-                st.warning("📍 The map couldn't find this shop by name! Please add the Street Address in the box above and hit Post again.")
+                st.warning("The map couldn't locate this café. Please add the Street Address and try again.")
                 st.stop()
                 
             shop_lat = location.latitude if location else None
@@ -162,18 +167,18 @@ with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
             conn.update(worksheet="Reviews", data=updated_df)
             
             if shop_lat and shop_lon:
-                st.success(f"Yeww! Added {shop_name} and dropped a pin on the map! 🌊📍")
+                st.success(f"Review published. {shop_name} has been added to the map.")
             else:
-                st.success(f"Added {shop_name}! (Review safely saved). 🌊")
+                st.success(f"Review published for {shop_name}.")
                 
             st.rerun()
         else:
-            st.error("Hold up! Fill out all fields before paddling out.")
+            st.error("Please fill out all required fields before submitting.")
 
 st.divider()
 
 # --- THE MAP ---
-st.subheader("🗺️ The Local Radar")
+st.subheader("The Local Radar")
 
 if not df.empty:
     map_data = df.dropna(subset=["Latitude", "Longitude"]).copy()
@@ -198,7 +203,7 @@ if not df.empty:
             popup_html = f"""
             <div style="font-family: 'Open Sans', sans-serif; min-width: 150px;">
                 <h4 style="margin-bottom: 5px; color: #006884; font-family: 'Montserrat', sans-serif; font-weight: 800;">{shop}</h4>
-                <p style="margin: 0; font-size: 14px; font-weight: 600;">{avg_stars:.1f} ⭐ ({review_count} reviews)</p>
+                <p style="margin: 0; font-size: 14px; font-weight: 600;">{avg_stars:.1f} / 5 ({review_count} reviews)</p>
             </div>
             """
             
@@ -206,28 +211,28 @@ if not df.empty:
                 location=[shop_lat, shop_lon],
                 tooltip=f"<span style='font-family: Montserrat; font-weight: bold;'>{shop}</span>", 
                 popup=folium.Popup(popup_html, max_width=300),
-                icon=folium.Icon(color="orange", icon="coffee", prefix="fa")
+                icon=folium.Icon(color="darkblue", icon="info-sign")
             ).add_to(m)
             
         st_folium(m, width=700, height=400, returned_objects=[])
     else:
-        st.info("No mapped locations yet! Add a shop to drop the first pin.")
+        st.info("No mapped locations yet. Add a café to drop the first pin.")
 else:
-    st.info("No mapped locations yet! Add a shop to drop the first pin.")
+    st.info("No mapped locations yet. Add a café to drop the first pin.")
 
 st.divider()
 
 # --- THE FEED ---
-st.subheader("✨ The Local Lineup")
+st.subheader("The Local Lineup")
 
 if df.empty:
-    st.info("No reviews in the database yet. Be the first to drop one!")
+    st.info("No reviews have been published yet. Be the first to add one.")
 else:
-    sort_method = st.radio("Sort the Lineup:", ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], horizontal=True)
+    sort_method = st.radio("Sort Directory By:", ["Highest Rated", "Most Reviewed", "Alphabetical (A-Z)"], horizontal=True)
     
-    if sort_method == "Highest Rated ⭐":
+    if sort_method == "Highest Rated":
         sorted_shops = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False).index.tolist()
-    elif sort_method == "Most Reviewed 📝":
+    elif sort_method == "Most Reviewed":
         sorted_shops = df["Shop"].value_counts().index.tolist()
     else:
         sorted_shops = sorted(df["Shop"].unique())
@@ -240,13 +245,13 @@ else:
         review_count = len(shop_reviews)
         
         with st.container(border=True):
-            st.markdown(f"### 📍 {shop} `({avg_stars:.1f}⭐ | {review_count} reviews)`")
+            st.markdown(f"### {shop} `({avg_stars:.1f}/5 | {review_count} reviews)`")
             
-            with st.expander(f"📖 Read the Reviews"):
+            with st.expander("Read Reviews"):
                 for _, row in shop_reviews.iloc[::-1].iterrows():
-                    individual_stars = "⭐" * int(row['Stars'])
+                    rating_display = f"{int(row['Stars'])} / 5"
                     date_display = f" • {row['Date']}" if pd.notna(row.get('Date')) and row['Date'] else ""
-                    st.markdown(f"**Score:** {individual_stars}{date_display}")
+                    st.markdown(f"**Rating:** {rating_display}{date_display}")
                     
                     if pd.notna(row.get('Tags')) and row['Tags']:
                         st.markdown(f"*{row['Tags']}*")
@@ -255,25 +260,22 @@ else:
                     st.write("---")
 
 # =====================================================================
-# --- THE GUESTBOOK (The New Hangout Spot) ---
+# --- THE GUESTBOOK ---
 # =====================================================================
 
 st.divider()
 
-# Set up the digital notebook in session state
 if 'guestbook' not in st.session_state:
     st.session_state.guestbook = []
 
-st.subheader("The Community Board")
-st.write("Drop a cafe recommendation, tell us how the cold brew is today, or just say hey.")
+st.subheader("Community Board")
+st.write("Leave a recommendation, share your favorite pour-over, or just say hello.")
 
-# The Pen and Paper (Input Form)
 with st.form("guestbook_form", clear_on_submit=True):
-    name = st.text_input("Your Name")
-    message = st.text_area("Your Message")
+    name = st.text_input("Name")
+    message = st.text_area("Message")
     
-    # The submit button
-    submit = st.form_submit_button("Post to Board")
+    submit = st.form_submit_button("Post Message")
     
     if submit and name and message:
         now = datetime.now().strftime("%B %d, %Y")
@@ -282,10 +284,8 @@ with st.form("guestbook_form", clear_on_submit=True):
             "message": message, 
             "date": now
         })
-        st.success(f"Stoked you stopped by, {name}! Message posted.")
-        st.balloons() 
+        st.success(f"Thank you for stopping by, {name}. Message posted.")
 
-# Displaying the Board
 st.write("")
 
 if st.session_state.guestbook:
@@ -294,4 +294,4 @@ if st.session_state.guestbook:
         st.markdown(f"> {entry['message']}")
         st.write("") 
 else:
-    st.info("The board is empty. Be the first to leave a note!")
+    st.info("The board is currently empty. Be the first to leave a note.")
