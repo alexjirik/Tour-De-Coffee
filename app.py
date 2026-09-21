@@ -55,6 +55,18 @@ st.markdown("""
     h1, h2, h3, p, span, label, div {
         color: #006884 !important;
     }
+    
+    /* 5. THE GUESTBOOK: Clean styling for community messages */
+    blockquote {
+        border-left: 4px solid #D27D2D;
+        padding-left: 1rem;
+        color: #006884;
+        font-style: italic;
+        margin-top: 0.5rem;
+        background-color: #EAE5D9;
+        padding: 10px;
+        border-radius: 0px 8px 8px 0px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -75,7 +87,6 @@ else:
     existing_data = pd.DataFrame(columns=["Shop", "Stars", "Review", "Latitude", "Longitude", "Date", "Tags"])
 
 # --- DATA CLEANUP ---
-# Ensure all columns exist just in case the sheet is lagging
 if "Latitude" not in existing_data.columns: existing_data["Latitude"] = None
 if "Longitude" not in existing_data.columns: existing_data["Longitude"] = None
 if "Date" not in existing_data.columns: existing_data["Date"] = None
@@ -84,7 +95,6 @@ if "Tags" not in existing_data.columns: existing_data["Tags"] = None
 if not existing_data.empty:
     existing_data["Shop"] = existing_data["Shop"].astype(str).str.strip().str.title()
 
-# Master DataFrame for math and map tracking
 df = existing_data.copy()
 if not df.empty:
     df["Stars"] = pd.to_numeric(df["Stars"], errors='coerce').fillna(5)
@@ -99,7 +109,7 @@ with col2:
 
 st.divider()
 
-# --- LOG A NEW SPOT (MOVED OUT OF SIDEBAR FOR MOBILE UX) ---
+# --- LOG A NEW SPOT ---
 with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
     st.write("Found a new gem in MPLS? Log it below.")
     
@@ -109,23 +119,17 @@ with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
     st.write("Overall Vibe & Taste")
     rating = st.feedback("stars")
     
-    # NEW: Vibe Tags!
     vibe_tags = st.multiselect(
         "Vibe Check (Select all that apply)", 
         ["💻 Good for Working", "☀️ Great Patio", "🥐 Amazing Pastries", "🚗 Drive-Thru", "🐕 Dog Friendly", "🛋️ Cozy Seating", "☕ Elite Espresso"]
     )
     
-    review_text = st.text_area(
-        "Spill the beans...", 
-        placeholder="How was the brew? Fast Wi-Fi?",
-        max_chars=280
-    )
+    review_text = st.text_area("Spill the beans...", placeholder="How was the brew? Fast Wi-Fi?", max_chars=280)
     
     if st.button("Post Review", use_container_width=True):
         if shop_name and review_text and rating is not None:
             numeric_rating = rating + 1
             
-            # --- THE MAGIC LOCATOR ---
             geolocator = Nominatim(user_agent="tour_de_coffee_mpls")
             search_query = f"{shop_address}, Minneapolis, Minnesota" if shop_address else f"{shop_name}, Minneapolis, Minnesota"
             
@@ -141,10 +145,7 @@ with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
             shop_lat = location.latitude if location else None
             shop_lon = location.longitude if location else None
             
-            # NEW: Grab the current month and year automatically
             current_date = datetime.now().strftime("%B %Y")
-            
-            # Combine the tags into a clean comma-separated string
             tags_string = ", ".join(vibe_tags) if vibe_tags else ""
             
             new_review = pd.DataFrame([{
@@ -171,7 +172,7 @@ with st.expander("📥 Drop a New Review (Click to Open)", expanded=False):
 
 st.divider()
 
-# --- THE MAP (The Interactive Radar) ---
+# --- THE MAP ---
 st.subheader("🗺️ The Local Radar")
 
 if not df.empty:
@@ -216,17 +217,13 @@ else:
 
 st.divider()
 
-# --- THE FEED (The Local Lineup) ---
+# --- THE FEED ---
 st.subheader("✨ The Local Lineup")
 
 if df.empty:
     st.info("No reviews in the database yet. Be the first to drop one!")
 else:
-    sort_method = st.radio(
-        "Sort the Lineup:", 
-        ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], 
-        horizontal=True
-    )
+    sort_method = st.radio("Sort the Lineup:", ["Highest Rated ⭐", "Most Reviewed 📝", "Alphabetical (A-Z)"], horizontal=True)
     
     if sort_method == "Highest Rated ⭐":
         sorted_shops = df.groupby("Shop")["Stars"].mean().sort_values(ascending=False).index.tolist()
@@ -248,10 +245,7 @@ else:
             with st.expander(f"📖 Read the Reviews"):
                 for _, row in shop_reviews.iloc[::-1].iterrows():
                     individual_stars = "⭐" * int(row['Stars'])
-                    
-                    # Safely handle the Date and Tags in case older reviews don't have them
                     date_display = f" • {row['Date']}" if pd.notna(row.get('Date')) and row['Date'] else ""
-                    
                     st.markdown(f"**Score:** {individual_stars}{date_display}")
                     
                     if pd.notna(row.get('Tags')) and row['Tags']:
@@ -259,3 +253,45 @@ else:
                         
                     st.caption(f"\"{row['Review']}\"")
                     st.write("---")
+
+# =====================================================================
+# --- THE GUESTBOOK (The New Hangout Spot) ---
+# =====================================================================
+
+st.divider()
+
+# Set up the digital notebook in session state
+if 'guestbook' not in st.session_state:
+    st.session_state.guestbook = []
+
+st.subheader("The Community Board")
+st.write("Drop a cafe recommendation, tell us how the cold brew is today, or just say hey.")
+
+# The Pen and Paper (Input Form)
+with st.form("guestbook_form", clear_on_submit=True):
+    name = st.text_input("Your Name")
+    message = st.text_area("Your Message")
+    
+    # The submit button
+    submit = st.form_submit_button("Post to Board")
+    
+    if submit and name and message:
+        now = datetime.now().strftime("%B %d, %Y")
+        st.session_state.guestbook.append({
+            "name": name, 
+            "message": message, 
+            "date": now
+        })
+        st.success(f"Stoked you stopped by, {name}! Message posted.")
+        st.balloons() 
+
+# Displaying the Board
+st.write("")
+
+if st.session_state.guestbook:
+    for entry in reversed(st.session_state.guestbook): 
+        st.markdown(f"**{entry['name']}** &nbsp; • &nbsp; *{entry['date']}*")
+        st.markdown(f"> {entry['message']}")
+        st.write("") 
+else:
+    st.info("The board is empty. Be the first to leave a note!")
