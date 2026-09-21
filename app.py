@@ -33,10 +33,10 @@ st.markdown("""
         font-weight: 400 !important;
     }
 
-    /* 3. THE BUTTONS: Clean, professional spacing and interaction */
+    /* 3. THE BUTTONS: Muted terracotta accent */
     div.stButton > button:first-child {
-        background-color: #D27D2D;
-        color: white;
+        background-color: #B36A5E;
+        color: #F7F4EB;
         border-radius: 20px;
         border: none;
         padding: 0.6rem 2rem;
@@ -45,30 +45,30 @@ st.markdown("""
         transition: all 0.3s ease; 
     }
     div.stButton > button:first-child:hover {
-        background-color: #A0522D;
-        color: white;
+        background-color: #935349;
+        color: #F7F4EB;
         transform: translateY(-2px); 
     }
 
-    /* 4. THE COLORS: Warm, clean palette */
+    /* 4. THE COLORS: Warm, minimalist Cortado palette */
     .stApp {
-        background-color: #F4F1EA;
+        background-color: #F7F4EB; /* Oat milk */
     }
     [data-testid="stSidebar"] {
-        background-color: #EAE5D9;
+        background-color: #EBE5D8; /* Steamed oat milk */
     }
-    h1, h2, h3, p, span, label, div {
-        color: #006884 !important;
+    h1, h2, h3, p, span, label, div, li {
+        color: #2C1E16 !important; /* Rich espresso brown */
     }
     
-    /* 5. THE GUESTBOOK: Minimalist styling for community messages */
+    /* 5. THE GUESTBOOK: Minimalist styling */
     blockquote {
-        border-left: 4px solid #D27D2D;
+        border-left: 4px solid #B36A5E;
         padding-left: 1rem;
-        color: #006884;
+        color: #2C1E16;
         font-style: italic;
         margin-top: 0.5rem;
-        background-color: #EAE5D9;
+        background-color: #EBE5D8;
         padding: 10px;
         border-radius: 0px 8px 8px 0px;
     }
@@ -202,8 +202,8 @@ if not df.empty:
             
             popup_html = f"""
             <div style="font-family: 'Open Sans', sans-serif; min-width: 150px;">
-                <h4 style="margin-bottom: 5px; color: #006884; font-family: 'Montserrat', sans-serif; font-weight: 800;">{shop}</h4>
-                <p style="margin: 0; font-size: 14px; font-weight: 600;">{avg_stars:.1f} / 5 ({review_count} reviews)</p>
+                <h4 style="margin-bottom: 5px; color: #2C1E16; font-family: 'Montserrat', sans-serif; font-weight: 800;">{shop}</h4>
+                <p style="margin: 0; font-size: 14px; font-weight: 600; color: #2C1E16;">{avg_stars:.1f} / 5 ({review_count} reviews)</p>
             </div>
             """
             
@@ -211,7 +211,7 @@ if not df.empty:
                 location=[shop_lat, shop_lon],
                 tooltip=f"<span style='font-family: Montserrat; font-weight: bold;'>{shop}</span>", 
                 popup=folium.Popup(popup_html, max_width=300),
-                icon=folium.Icon(color="darkblue", icon="info-sign")
+                icon=folium.Icon(color="black", icon="info-sign")
             ).add_to(m)
             
         st_folium(m, width=700, height=400, returned_objects=[])
