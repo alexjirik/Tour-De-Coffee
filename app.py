@@ -113,7 +113,59 @@ with col2:
     st.metric(label="Total Reviews", value=len(df))
 
 st.divider()
+# =====================================================================
+# --- THE COFFEE CLUB (Live Order Window) ---
+# =====================================================================
 
+st.divider()
+
+st.subheader("The Coffee Club : Order Window")
+st.write("Brewing out of the apartment. Put your name in the lineup and I will text you when it is on the handoff counter.")
+
+# Set up the digital ticket rail
+if 'active_orders' not in st.session_state:
+    st.session_state.active_orders = []
+
+with st.container(border=True):
+    with st.form("order_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            neighbor_name = st.text_input("Name (or Apt Number)")
+            drink_choice = st.selectbox(
+                "The Menu", 
+                ["Single-Origin V60 Pour-Over", "Cortado (Double Shot)", "Signature Cold Brew"]
+            )
+            
+        with col2:
+            pickup_time = st.selectbox(
+                "Requested Handoff", 
+                ["In 10 minutes", "In 20 minutes", "In 30 minutes"]
+            )
+            notes = st.text_input("Modifications", placeholder="Oat milk? Extra ice?")
+        
+        submit_order = st.form_submit_button("Send Ticket to the Barista", use_container_width=True)
+        
+        if submit_order and neighbor_name:
+            now = datetime.now().strftime("%I:%M %p")
+            st.session_state.active_orders.append({
+                "name": neighbor_name,
+                "drink": drink_choice,
+                "time": pickup_time,
+                "notes": notes,
+                "ordered_at": now
+            })
+            st.success(f"Ticket received. Dialing in the grind for {neighbor_name}.")
+
+# Show the active queue (optional: you can hide this later if you only want to see it yourself)
+if st.session_state.active_orders:
+    with st.expander("View Active Ticket Rail"):
+        for order in reversed(st.session_state.active_orders):
+            notes_display = f" | Notes: {order['notes']}" if order['notes'] else ""
+            st.markdown(f"**{order['name']}** - {order['drink']}")
+            st.caption(f"Ordered at {order['ordered_at']} • Pickup: {order['time']}{notes_display}")
+            st.write("---")
+            
 # --- LOG A NEW SPOT ---
 with st.expander("Drop a New Review", expanded=False):
     st.write("Discovered a new café? Log the details below.")
